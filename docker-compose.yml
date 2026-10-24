@@ -1,0 +1,28 @@
+# Postgres + Redis untuk pengembangan lokal saja. Server (staging/produksi) pakai deploy/docker-compose.yml.
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports: ["127.0.0.1:55432:5432"]  # 5432 sudah dipakai PostgreSQL 18 native
+    environment:
+      POSTGRES_USER: communityleague
+      POSTGRES_DB: communityleague_local
+      # ponytail: trust auth, hanya di-bind ke 127.0.0.1. Pakai password kalau port pernah dibuka keluar.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U communityleague -d communityleague_local"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:16379:6379"]  # 6379 sudah dipakai Redis native
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+vendor
+tests
+docs
+storage/logs/*
+.env
+.env.*
+VPS.md
+*.md
+bootstrap/cache/*.php
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+deploy

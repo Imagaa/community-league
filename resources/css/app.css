@@ -1,0 +1,172 @@
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Komikazoom -- font display/heading dari brand guideline, dipakai
+ * untuk wordmark/judul besar, BUKAN body text. File font tidak ada di katalog Bunny Fonts (bukan
+ * font publik), jadi di-self-host manual di sini -- beda dari Instrument Sans yang dipasang lewat
+ * plugin bunny() di vite.config.js. Tidak ada file lisensi eksplisit yang menyertai file font ini
+ * (cuma teks contoh, bukan EULA) -- pastikan hak pakai komersial/web-embed sudah jelas sebelum
+ * dipakai di produksi.
+ */
+@font-face {
+    font-family: 'Komikazoom';
+    src: url('../fonts/komikazoom.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Komikazoom', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+
+    --color-zinc-50: #fafafa;
+    --color-zinc-100: #f5f5f5;
+    --color-zinc-200: #e5e5e5;
+    --color-zinc-300: #d4d4d4;
+    --color-zinc-400: #a3a3a3;
+    --color-zinc-500: #737373;
+    --color-zinc-600: #525252;
+    --color-zinc-700: #404040;
+    --color-zinc-800: #262626;
+    --color-zinc-900: #171717;
+    --color-zinc-950: #0a0a0a;
+
+    /*
+     * Skala Community Red, override skala "red" bawaan Tailwind -- red-600 di sini SAMA PERSIS
+     * dengan hex resmi brand (#ED1F24, lihat brand guideline). Shade lain diturunkan
+     * dari situ (hue/saturation konstan, cuma lightness yang berubah), supaya semua class
+     * red-* di seluruh app (termasuk state error/danger yang sudah ada sebelumnya) otomatis
+     * pakai satu merah brand yang sama, bukan dua merah yang beda tipis.
+     */
+    --color-red-50: #fef1f1;
+    --color-red-100: #fdddde;
+    --color-red-200: #fab8b9;
+    --color-red-300: #f68386;
+    --color-red-400: #f25054;
+    --color-red-500: #ef3439;
+    --color-red-600: #ed1f24;
+    --color-red-700: #c51116;
+    --color-red-800: #a11215;
+    --color-red-900: #811215;
+    --color-red-950: #450c0e;
+
+    /*
+     * Skala Vivid Orange, override skala "orange" bawaan Tailwind -- orange-600 di sini SAMA
+     * PERSIS dengan hex resmi tema gelap (#F14A1C, lihat brand guideline). Ini pasangan
+     * dark-mode dari Community Red: red-* dipakai di light mode, orange-* jadi primary/aksen di
+     * dark mode (class .dark).
+     */
+    --color-orange-50: #fef2ed;
+    --color-orange-100: #fde1d3;
+    --color-orange-200: #fbc0a3;
+    --color-orange-300: #f79a6e;
+    --color-orange-400: #f37341;
+    --color-orange-500: #f15c2c;
+    --color-orange-600: #f14a1c;
+    --color-orange-700: #c93813;
+    --color-orange-800: #a12d10;
+    --color-orange-900: #82250e;
+    --color-orange-950: #451106;
+
+    /*
+     * Skala Deep Navy -- latar tema gelap (lihat brand guideline), BUKAN hitam pekat.
+     * Tailwind tidak punya skala "navy" bawaan, jadi ini token baru, bukan override. Cuma
+     * 4 shade tergelap yang dibuat (950 = latar halaman, 900 = kartu/surface, 800 = border/divider,
+     * 700 = hover/elevated) -- shade terang tidak dipakai di mana pun (teks di atas navy pakai
+     * putih/zinc-300, bukan tint navy).
+     */
+    --color-navy-950: #10132d;
+    --color-navy-900: #191d45;
+    --color-navy-800: #23285c;
+    --color-navy-700: #2f3572;
+
+    /*
+     * Brand Community Red, bukan neutral-800/white default Flux -- supaya checkbox/radio/switch
+     * checked state dan flux:button variant="primary" ikut warna brand, bukan abu-abu/hitam.
+     * Dulu pakai emerald (nilai default preset Flux color="emerald"), diganti ke red-600 brand
+     * di atas per refactor warna (30 Ags 2026, lihat brand guideline).
+     */
+    --color-accent: var(--color-red-600);
+    --color-accent-content: var(--color-red-600);
+    --color-accent-foreground: var(--color-white);
+}
+
+@layer theme {
+    /*
+     * Dark mode: aksen jadi Vivid Orange (bukan Community Red) per pemetaan tema di
+     * brand guideline. Community Red tidak hilang -- masih dipakai langsung (class
+     * red-* eksplisit) untuk elemen tertentu seperti badge, sesuai catatan "aksen sekunder"
+     * di guideline.
+     */
+    .dark {
+        --color-accent: var(--color-orange-600);
+        --color-accent-content: var(--color-orange-400);
+        --color-accent-foreground: var(--color-white);
+    }
+}
+
+@layer base {
+
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+
+    /*
+     * Tanpa ini, browser (terutama Chrome Android "Force Dark") menganggap halaman ini
+     * berpotensi gelap dan otomatis menggelapkan elemen native seperti input/select/checkbox --
+     * membuatnya tampak hitam meski class Tailwind sudah eksplisit terang. Nilai ini mengikuti
+     * class .dark yang sama dipakai Flux untuk toggle tampilan.
+     */
+    html {
+        color-scheme: light;
+        scroll-behavior: smooth;
+    }
+
+    html.dark {
+        color-scheme: dark;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+    }
+}
+
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-2;
+}
+
+[data-flux-label] {
+    @apply  !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+}
+
+/* \[:where(&)\]:size-4 {
+    @apply size-4;
+} */
+
+/* Input dashboard admin (selalu gelap). */
+@layer components {
+    .admin-input {
+        @apply w-full rounded-lg border border-navy-700 bg-navy-950 px-3 py-2.5 text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none;
+    }
+}

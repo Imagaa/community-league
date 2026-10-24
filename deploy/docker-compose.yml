@@ -1,0 +1,85 @@
+# Stack Community League untuk VPS biasa (Docker + Cloudflare Tunnel), tanpa Dokploy.
+# Sementara MENUMPANG di VPS produksi naraya -- karena itu semua container dibatasi keras dan
+# sengaja dibuat "mengalah duluan": RAM tanpa swap, cpu_shares rendah (saat CPU rebutan, proyek
+# lain didahulukan), oom_score_adj tinggi (saat RAM habis, kernel mematikan CL lebih dulu).
+# Project, network & volume sendiri; port hanya 127.0.0.1 (publik lewat Cloudflare Tunnel).
+# Pakai: lihat deploy/README.md.
+name: communityleague
+
+x-log: &log
+  driver: json-file
+  options: { max-size: "5m", max-file: "2" }
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:?isi DB_DATABASE di .env}
+      POSTGRES_USER: ${DB_USERNAME:?isi DB_USERNAME di .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?isi DB_PASSWORD di .env}
+    # Setelan kecil: muat di 192 MB. Naikkan bareng mem_limit kalau datanya sudah besar.
+    command: >
+      postgres -c shared_buffers=32MB -c effective_cache_size=96MB -c work_mem=2MB
+      -c maintenance_work_mem=16MB -c max_connections=30 -c wal_buffers=1MB
+      -c max_wal_size=256MB -c min_wal_size=32MB -c max_worker_processes=2
+      -c max_parallel_workers=0 -c max_parallel_workers_per_gather=0
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.5
+    cpu_shares: 256
+    pids_limit: 100
+    oom_score_adj: 500
+    logging: *log
+
+  # Sesi + cache. Tanpa persistensi (hemat disk/IO): restart redis = semua user login ulang.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server --requirepass ${REDIS_PASSWORD:?isi REDIS_PASSWORD di .env}
+      --maxmemory 48mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.25
+    cpu_shares: 256
+    pids_limit: 50
+    oom_score_adj: 500
+    logging: *log
+
+  # Image dibangun GitHub Actions (build.yml) -- VPS cuma menarik, tidak pernah build sendiri.
+  # Web (FrankenPHP) + scheduler (schedule:work) jalan di container yang sama, lihat
+  # docker/entrypoint.sh. Healthcheck /up sudah ada di Dockerfile.
+  app:
+    image: ghcr.io/imagaa/communityleague:${IMAGE_TAG:-main}
+    pull_policy: never
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      LOG_CHANNEL: stderr
+    ports:
+      - "127.0.0.1:${APP_PORT:-8083}:8080"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_started }
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    cpu_shares: 512
+    pids_limit: 200
+    oom_score_adj: 500
+    logging: *log
+
+volumes:
+  pgdata:

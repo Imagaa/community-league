@@ -1,0 +1,13 @@
+{
+    "name": "Community League",
+    "short_name": "CL",
+    "description": "Booking match sepakbola & mini soccer",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#ED1F24",
+    "orientation": "portrait",
+    "icons": [
+        { "src": "/images/app-icon.webp", "sizes": "5760x5760", "type": "image/webp", "purpose": "any" }
+    ]
+}
